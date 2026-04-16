@@ -24,7 +24,7 @@ while {[set opt [lindex $argv $x]] != ""} {
  switch -exact -- $opt {
    -z {
         set configFile [lindex $argv [expr $x + 1]]
-        incr x   
+        incr x
    }
  }
  incr x
@@ -47,7 +47,7 @@ proc doLogIlg {errcode msg} {
   if {$logHandle == ""} {
     return
   }
-  
+
   $logHandle log $logContext "$msg"
   doLog "$msg"
 }
@@ -118,13 +118,13 @@ set subsecond_decimal_l 0
 set log_fields {Severity Level Date Time Subsecond Host Role Pid Username System Facility Detector Partition Run ErrCode srcLine srcFile Message}
 
 # as defined in https://github.com/AliceO2Group/InfoLogger/blob/master/src/infoLoggerMessage.c
-set log_fields_p14 {severity level timestamp hostname rolename pid username system facility detector partition run errcode errline errsource message}
+set log_fields_p14 {severity level timestamp hostname rolename pid username system facility detector partition run errcode errline errsource traceid spanid message}
 
 
 # real protocol used
 # number of fields
-set log_protocol_nFields 16
-set log_protocol_version 1.4
+set log_protocol_nFields 18
+set log_protocol_version 1.5
 
 # One global for each field contains list of items - create empty
 foreach item $log_fields {
@@ -183,12 +183,12 @@ if {$configFile!=""} {
     set lkey [lindex $lv 0]
     if {[string range $lkey 0 1]=="#"} {continue}
     set lv [string trim [join [lrange $lv 1 end] "="]]
-    
+
     lappend keyfound $lkey
     set cfgvals($lkey) $lv
   }
   close $fd
-  
+
   set cfgok 1
   foreach {keyname isoptionnal varname defval} [list \
     dbUser 0 db_user "$default_db_user" \
@@ -201,18 +201,18 @@ if {$configFile!=""} {
     queryLimit 1 maxmess "$maxmess" \
   ] {
     set $varname $defval
-    if {[catch { set $varname $cfgvals($keyname) }]} {   
+    if {[catch { set $varname $cfgvals($keyname) }]} {
       if {!$isoptionnal} {
         doLog "Configuration variable $keyname undefined"
         set cfgok 0
       }
     }
-  }  
+  }
   if {!$cfgok} {
     doLog "Wrong configuration in $configFile, exiting"
     exit -1
   }
-  
+
 } else {
 
   set envok 1
@@ -225,14 +225,14 @@ if {$configFile!=""} {
     INFOLOGGER_SERVER_PORT_TX 1 logport "${default_logport}" \
   ] {
     set $varname $defval
-    if {[catch { set $varname $env($envname) }]} {      
+    if {[catch { set $varname $env($envname) }]} {
       if {!$isoptionnal} {
         doLog "Environment variable $envname undefined"
         set envok 0
       }
     }
   }
-   
+
   if {!$envok} {
     doLog "Wrong environment, exiting"
     exit -1
@@ -253,7 +253,7 @@ proc server_event {} {
 
   global server_fd
   global n_msgs
-  global n_msgs_bad  
+  global n_msgs_bad
 
   global log_fields
   global log_protocol_nFields
@@ -262,14 +262,14 @@ proc server_event {} {
   fileevent $server_fd readable ""
   set n_loop 0
   set n_msgs_start $n_msgs
-    
+
   # init empty fields
   foreach f $log_fields {
     set l_$f {}
   }
-    
+
   while {1} {
-    
+
     # connection closed?
     if {[eof $server_fd]} {
       close $server_fd
@@ -283,7 +283,7 @@ proc server_event {} {
 
     # read and decode message
     if {[gets $server_fd msg]==-1} {break}
-       
+
     while {1} {
       set item [split $msg "#"]
       if {[llength $item]<$log_protocol_nFields} {
@@ -302,18 +302,20 @@ proc server_event {} {
         set v_level [lindex $item 2]
         set tmicro [lindex $item 3]
         set v_hostname [lindex $item 4]
-        set v_rolename [lindex $item 5]  
+        set v_rolename [lindex $item 5]
         set v_pid [lindex $item 6]
         set v_username [lindex $item 7]
         set v_system [lindex $item 8]
         set v_facility [lindex $item 9]
         set v_detector [lindex $item 10]
-        set v_partition [lindex $item 11]       
+        set v_partition [lindex $item 11]
         set v_run [lindex $item 12]
         set v_errcode [lindex $item 13]
         set v_errline [lindex $item 14]
         set v_errsource [lindex $item 15]
-        set v_message [join [lrange $item 16 end] "#"]
+        set v_traceid [lindex $item 16]
+        set v_spanid [lindex $item 17]
+        set v_message [join [lrange $item 18 end] "#"]
 
       } else {
     	  incr n_msgs_bad
@@ -323,7 +325,7 @@ proc server_event {} {
       global llmsg
       incr llmsg [string length $msg]
       #puts "** + [string length $msg] = $llmsg"
-      
+
       set tval [expr int($tmicro)]
 
       # re-format multiple line messages
@@ -352,9 +354,9 @@ proc server_event {} {
 
       # RFC 3339
       set tss [join [list [clock format $ts1 -format "%Y-%m-%dT%H:%M:%S" -timezone :UTC]  [format ".%06d" [expr {round($ts2 * 1e6)}]] "Z"] ""]
-      
+
       # PRI
-      # local0 
+      # local0
       # Fatal -> 2	Critical
       # Error -> 3	Error
       # Warning -> 4	Warning
@@ -375,16 +377,16 @@ proc server_event {} {
       } else {
         set syslog_level 6
       }
-            
+
       #check NIL values
       if {$v_hostname == ""} {set v_hostname "-"}
       if {$v_pid == ""} {set v_pid "-"}
-      
-      lset item 16 $m
-      
+
+      lset item 18 $m
+
       set d {}
       global log_fields_p14
-      foreach k $log_fields_p14 v [lrange $item 1 16] {
+      foreach k $log_fields_p14 v [lrange $item 1 18] {
          if {[string length $v] == 0} {
              set v "null"
 	     #lappend d "\"$k\": $v"
@@ -394,7 +396,7 @@ proc server_event {} {
 	 }
       }
       set json [join $d ", "]
-      
+
       set syslogm "<[expr $syslog_facility * 8 +$syslog_level]>1 $tss $v_hostname o2-infologger $v_pid - - {$json}"
       #puts $msg
       #puts $syslogm
@@ -402,17 +404,17 @@ proc server_event {} {
       incr llout [string length $syslogm]
       #puts "[string length $syslogm] - [string length $msg]"
       sendmsg $syslogm
-      
+
       incr n_msgs
       }
       break
     }
-    
+
     incr n_loop
     if {$n_loop==1000} {break}
   }
- 
-  if {$server_fd!=-1} {  
+
+  if {$server_fd!=-1} {
     fileevent $server_fd readable server_event
   }
 }
@@ -423,9 +425,9 @@ proc server_connect {} {
   global server_fd
   global env
   global onlineserver
-  
+
   set onlinetimer(timer) ""
-    
+
   # connect only if not connected yet
   if {$server_fd!=-1} {return}
 
@@ -444,12 +446,12 @@ proc server_connect {} {
     return
   }
   set onlineserver(timeout) $onlineserver(retry)
-  fconfigure $server_fd -blocking false   
+  fconfigure $server_fd -blocking false
   fconfigure $server_fd -buffersize 1000000
   fileevent $server_fd readable server_event
-  
+
   doLog "Connected"
-  
+
   update
 }
 
@@ -462,7 +464,7 @@ proc doOnline {} {
   global server_fd
 
   global busy
-  
+
   if {$online} {
 
     if {$busy} {return}
@@ -472,11 +474,11 @@ proc doOnline {} {
 
     # update status display
     doLog "Opening infoLoggerServer"
-    
+
     # connect server
-    server_connect   
+    server_connect
     update
-    
+
   } else {
     # close server
     if {$server_fd!=-1} {
@@ -491,8 +493,8 @@ proc doOnline {} {
       after cancel $onlineserver(timer)
       set onlineserver(timer) ""
     }
-    
-    update    
+
+    update
     set busy 0
   }
 }
@@ -507,7 +509,7 @@ proc txconnect {} {
   if {$externalFd != ""} {
     return
   }
-  
+
   doLog "Connect $cfg(syslogsocket)"
   set externalFd [open "|socat - UNIX-CONNECT:$cfg(syslogsocket)" "w"]
   if {[eof $externalFd]} {
@@ -522,7 +524,7 @@ proc sendmsg {m} {
   if {$externalFd == ""} {
     return
   }
-  if {[catch {     
+  if {[catch {
     puts $externalFd $m
     flush $externalFd
   } err] } {
