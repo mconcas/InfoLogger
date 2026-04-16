@@ -59,6 +59,8 @@ class InfoLoggerMessageHelper
   int ix_errcode;
   int ix_errline;
   int ix_errsource;
+  int ix_traceid;
+  int ix_spanid;
   int ix_message;
 };
 

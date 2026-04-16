@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
           optNoWarning = 1;
         } else {
           log.error("Wrong option %s", optString.c_str());
-	  return -1;
+          return -1;
         }
       } break;
 
@@ -164,10 +164,10 @@ int main(int argc, char* argv[])
   };
   std::vector<infoTable> tables;
   unsigned long long totalTables = 0; // number of tables
-  unsigned long long totalRows = 0; // number of rows
-  unsigned long long totalBytes = 0; // number of bytes
-  unsigned long long mainRows = 0; // number of messages in main table
-  unsigned long long mainBytes = 0; // number of bytes in main table
+  unsigned long long totalRows = 0;   // number of rows
+  unsigned long long totalBytes = 0;  // number of bytes
+  unsigned long long mainRows = 0;    // number of messages in main table
+  unsigned long long mainBytes = 0;   // number of bytes in main table
 
   // execute command(s)
   if (optStatus) {
@@ -188,33 +188,33 @@ int main(int argc, char* argv[])
       return -1;
     }
     MYSQL_ROW row;
-    for (int n=0;;n++) {
+    for (int n = 0;; n++) {
       row = mysql_fetch_row(res);
       if (row == NULL) {
         break;
       }
-      for (int i=0; i<numFields; i++) {
-	if (row[i] == NULL) {
+      for (int i = 0; i < numFields; i++) {
+        if (row[i] == NULL) {
           log.error("No field[%d] in row %d returned for query %s", i, n, sqlQuery.c_str());
           return -1;
-	}
+        }
       }
       unsigned long long nRows = strtoul(row[1], NULL, 10);
       unsigned long long nBytes = strtoul(row[2], NULL, 10);
-      tables.push_back({row[0], nRows, nBytes});
+      tables.push_back({ row[0], nRows, nBytes });
       totalTables++;
       totalRows += nRows;
       totalBytes += nBytes;
       if (!strcmp(row[0], INFOLOGGER_TABLE_MESSAGES)) {
-	mainRows = nRows;
-	mainBytes = nBytes;
+        mainRows = nRows;
+        mainBytes = nBytes;
       }
     }
     mysql_free_result(res);
     if (optStatusMore) {
       log.info("Found following tables:");
-      for (const auto &i: tables) {
-	log.info("  %s : %lu rows, %lu bytes", i.name.c_str(), i.rows, i.size);	
+      for (const auto& i : tables) {
+        log.info("  %s : %lu rows, %lu bytes", i.name.c_str(), i.rows, i.size);
       }
       log.info("Total: %llu tables, %llu rows, %llu bytes", totalTables, totalRows, totalBytes);
     }
@@ -252,11 +252,11 @@ int main(int argc, char* argv[])
   auto confirm = [&]() {
     if (!optNoWarning) {
       log.info("Please confirm: type 'yes'");
-      char buf[5]="";
+      char buf[5] = "";
       fgets(buf, 5, stdin);
       if (strcmp("yes\n", buf)) {
-        log.info("Operation aborted %s",buf);
-	return 0;
+        log.info("Operation aborted %s", buf);
+        return 0;
       }
     }
     return 1;
@@ -264,10 +264,10 @@ int main(int argc, char* argv[])
 
   if (optDelete) {
     log.info("Delete main table content");
-    if ((mainRows)&&(!optNoWarning)) {
+    if ((mainRows) && (!optNoWarning)) {
       log.warning("This table is not empty ! %llu rows (%llu bytes) will be deleted", mainRows, mainBytes);
       if (!confirm()) {
-	return -1;
+        return -1;
       }
     }
     std::string sqlQuery = "truncate table " INFOLOGGER_TABLE_MESSAGES;
@@ -279,10 +279,10 @@ int main(int argc, char* argv[])
 
   if (optDestroy) {
     log.info("Destroy all tables");
-    if ((totalRows)&&(!optNoWarning)) {
+    if ((totalRows) && (!optNoWarning)) {
       log.warning("The tables are not empty ! %llu tables %llu rows (%llu bytes) will be deleted", totalTables, totalRows, totalBytes);
       if (!confirm()) {
-	return -1;
+        return -1;
       }
     }
     // destroy all messages tables
@@ -322,9 +322,9 @@ int main(int argc, char* argv[])
   std::string sqlTableDesriptionMessages =
     "(severity char(1), level tinyint unsigned, timestamp double(16,6), hostname varchar(32), rolename varchar(32), pid mediumint \
     unsigned, username varchar(32), `system` varchar(32), facility varchar(32), detector varchar(32), `partition` varchar(32), run int unsigned, errcode int unsigned, \
-    errline smallint unsigned, errsource varchar(32), message text, index ix_severity(severity), index ix_level(level), index ix_timestamp(timestamp), index \
+    errline smallint unsigned, errsource varchar(32), traceid varchar(32), spanid varchar(16), message text, index ix_severity(severity), index ix_level(level), index ix_timestamp(timestamp), index \
     ix_hostname(hostname(14)), index ix_rolename(rolename(20)), index ix_system(`system`(3)), index ix_facility(facility(20)), index ix_detector(detector(8)), index \
-    ix_partition(`partition`(10)), index ix_run(run), index ix_errcode(errcode), index ix_errline(errline), index ix_errsource(errsource(20)))";
+    ix_partition(`partition`(10)), index ix_run(run), index ix_errcode(errcode), index ix_errline(errline), index ix_errsource(errsource(20)), index ix_traceid(traceid))";
 
   if (optPartitioning) {
     log.info("Using partitioning");
@@ -381,4 +381,3 @@ int main(int argc, char* argv[])
 
   return 0;
 }
-

@@ -44,7 +44,7 @@ typedef struct {
 } infoLog_msgField_def_t;
 
 /* maximum number of fields for any protocol */
-#define INFOLOG_FIELDS_MAX 18
+#define INFOLOG_FIELDS_MAX 20
 
 /* structure to define a log message = list of fields */
 typedef struct {
@@ -82,9 +82,9 @@ int infoLog_msg_print(infoLog_msg_t* msg);
   msg: struct to be encoded (according to protocol msg->protocol)
   buffer: a buffer where the result string is printed
   bufferSize: size of the buffer
-  splitLinesForThisFieldIndex: if this parameter is not -1, multiple records (all concatenated in the single string buffer output) 
+  splitLinesForThisFieldIndex: if this parameter is not -1, multiple records (all concatenated in the single string buffer output)
                                are created, one per line of this field (all other fields being equal).
-  
+
   Special characters (*,#,\n) in any field are replaced by a ? in final entry.
 
   returns: 0 if success, -1 if buffer too small and last field was truncated, or a non-zero error code.

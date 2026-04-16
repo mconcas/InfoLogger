@@ -64,7 +64,9 @@ class InfoLoggerContext final
                          System,
                          Detector,
                          Partition,
-                         Run };
+                         Run,
+                         TraceId,
+                         SpanId };
 
   /// Function to parse input string and find matching FieldName.
   /// On success, output variable is set accordingly.
@@ -129,6 +131,8 @@ class InfoLoggerContext final
   std::string detector;  // detector name (internally converted to 3-letter detector code if found)
   std::string partition; // partition name (if concept kept for run 3)
   int run;               // run number (if concept kept for run 3)
+  std::string traceId;   // W3C trace id (32 hex chars), for log-trace correlation
+  std::string spanId;    // W3C span id (16 hex chars), for log-trace correlation
 
   // non-writable fields, set automatically
   int processId;        // PID of the message source process
@@ -177,7 +181,7 @@ class InfoLogger
   /// operations (1-5) support (6-10) developer (11-20) trace (21-99).
   /// Trace messages should typically not be enabled in normal running conditions,
   /// and usually related to debugging activities (also akin to the 'Debug' severity).
-  enum Level { 
+  enum Level {
   	Ops = 1,
 	Support = 6,
 	Devel = 11,
@@ -275,7 +279,7 @@ class InfoLogger
     };
     ~AutoMuteToken() {
     };
-    
+
     protected:
     friend class InfoLogger;
     InfoLogger::InfoLoggerMessageOption logOptions; // options used for associated logs
@@ -285,7 +289,7 @@ class InfoLogger
     std::chrono::time_point<std::chrono::steady_clock> t0; // time of beginning of interval
     std::chrono::time_point<std::chrono::steady_clock> t1; // time of previous message
     unsigned int ndiscarded; // number of messages discarded in last interval
-    unsigned int ndiscardedtotal; // number of messages discarded since beginning of verbose phase    
+    unsigned int ndiscardedtotal; // number of messages discarded since beginning of verbose phase
   };
 
   /// Convert a string to an infologger severity
@@ -321,7 +325,7 @@ class InfoLogger
   /// - when the number of messages counted in an interval exceeds the threshold, auto-mute triggers ON: next messages (with this token) are discarded
   /// - when auto-mute is on, one message is still printed for each time interval, with statistics about the number of discarded messages -> the logging rate is effectively limited to a couple of messages per interval
   /// - the auto-mute triggers off when there was no message received for a duration equal to the interval time. (this is equal to "X seconds before last message").
-  /// 
+  ///
   /// \return         0 on success, an error code otherwise (but never throw exceptions).
   int log(AutoMuteToken &token, const char* message, ...) __attribute__((format(printf, 3, 4)));
 
@@ -370,7 +374,7 @@ class InfoLogger
   /// Select discarding of messages with DEBUG severity.
   /// parameter: 0 (default, debug messages kept) or 1 (debug messages discarded)
   void filterDiscardDebug(bool enable);
-  
+
   /// Select discarding of messages with higher levels.
   /// parameter: level from which messages are discarded (bigger than or equal to this level).
   /// Can be InfoLogger::undefinedMessageOption.level, to keep messages of all levels (default)
@@ -396,7 +400,7 @@ class InfoLogger
 
   /// Reset counters of messages
   void resetMessageCount();
-  
+
 
   /// Functions to keep an history of messages
 

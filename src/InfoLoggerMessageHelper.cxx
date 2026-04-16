@@ -58,6 +58,10 @@ InfoLoggerMessageHelper::InfoLoggerMessageHelper()
     throw __LINE__;
   if (findIndex(errsource) == -1)
     throw __LINE__;
+  if (findIndex(traceid) == -1)
+    throw __LINE__;
+  if (findIndex(spanid) == -1)
+    throw __LINE__;
   if (findIndex(message) == -1)
     throw __LINE__;
 }
@@ -276,7 +280,7 @@ int InfoLoggerMessageHelper::MessageToText(infoLog_msg_t* msg, char* buffer, int
   }
 
   /*
-  // debug: dump of msg fields  
+  // debug: dump of msg fields
   for (int i=0;i<protocols[0].numberOfFields;i++) {
     printf("Field %d (%s): undefined=%d value=",i,protocols[0].fields[i].name,msg->values[i].isUndefined);
     if (!msg->values[i].isUndefined) {
@@ -295,7 +299,7 @@ int InfoLoggerMessageHelper::MessageToText(infoLog_msg_t* msg, char* buffer, int
        }
     }
     printf("\n");
-  }  
+  }
   printf("encoding=%s\n",buffer);
   */
 

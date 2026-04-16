@@ -436,7 +436,7 @@ class InfoLogger::Impl
   int pipeStderr[2];                           // a pipe to redirect stderr to collecting thread
   std::unique_ptr<std::thread> redirectThread; // the thread handling the redirection
   bool redirectThreadShutdown;                 // flag to ask the thread to stop
-  
+
   bool filterDiscardDebug = false;  // when set, messages with debug severity are dropped
   int filterDiscardLevel = InfoLogger::undefinedMessageOption.level; // when set, messages with higher level (>=) are dropped
   bool filterDiscardFileEnabled = false; // when set, discarded messages go to file
@@ -449,8 +449,8 @@ class InfoLogger::Impl
   int historyFilterSeverity = -1;
   int historyFilterLevel = -1;
   std::queue<std::string> historyMessages; // messages currently in history queue
-  std::mutex historyMutex; // lock to avoid concurrent calls on history functions 
-  
+  std::mutex historyMutex; // lock to avoid concurrent calls on history functions
+
   // error code conversion table
   std::vector<std::pair<int, std::string>> errorCodesTable; // first: error code, second: description
 
@@ -468,11 +468,11 @@ class InfoLogger::Impl
   unsigned int     floodStat_msgs_lastmin; // number of messages in last minute
   double           floodStat_time_lastsec; // time counter for last second
   double           floodStat_time_lastmin; // time counter for last minute
-  int              floodMode; // current flood status = 0: no flood, 1: messages redirected to local file, 2: messages dropped 
+  int              floodMode; // current flood status = 0: no flood, 1: messages redirected to local file, 2: messages dropped
   FILE             *floodFile_fp=nullptr; // handle to current flood file to store messages in excess
   unsigned int     floodFile_msg; // number of messages recorded to flood file
   unsigned int     floodFile_msg_drop; // number of messages dropped
-  
+
   void floodReset() {
     floodStat_msgs_sec=0;
     floodStat_msgs_min=0;
@@ -487,7 +487,7 @@ class InfoLogger::Impl
     floodFile_msg=0;
     floodFile_msg_drop=0;
   }
-  
+
   // message statistics
   static const unsigned int numberOfSeverities = 5;
   std::atomic<unsigned long> messageCountPerSeverity[numberOfSeverities + 1] = {};
@@ -561,6 +561,12 @@ void InfoLogger::Impl::refreshDefaultMsg()
   if (currentContext.run != -1) {
     InfoLoggerMessageHelperSetValue(defaultMsg, msgHelper.ix_run, Int, currentContext.run);
   }
+  if (currentContext.traceId.length() > 0) {
+    InfoLoggerMessageHelperSetValue(defaultMsg, msgHelper.ix_traceid, String, currentContext.traceId.c_str());
+  }
+  if (currentContext.spanId.length() > 0) {
+    InfoLoggerMessageHelperSetValue(defaultMsg, msgHelper.ix_spanid, String, currentContext.spanId.c_str());
+  }
 
   if (currentContext.processId != -1) {
     InfoLoggerMessageHelperSetValue(defaultMsg, msgHelper.ix_pid, Int, currentContext.processId);
@@ -599,7 +605,7 @@ int InfoLogger::Impl::pushMessage(const InfoLoggerMessageOption& options, const 
   if ((discardMessage) && (!filterDiscardFileEnabled)) {
     return 1;
   }
-  
+
   infoLog_msg_t msg = defaultMsg;
 
   struct timeval tv;
@@ -660,6 +666,12 @@ int InfoLogger::Impl::pushMessage(const InfoLoggerMessageOption& options, const 
   }
   if (context.run != -1) {
     InfoLoggerMessageHelperSetValue(msg, msgHelper.ix_run, Int, context.run);
+  }
+  if (context.traceId.length() > 0) {
+    InfoLoggerMessageHelperSetValue(msg, msgHelper.ix_traceid, String, context.traceId.c_str());
+  }
+  if (context.spanId.length() > 0) {
+    InfoLoggerMessageHelperSetValue(msg, msgHelper.ix_spanid, String, context.spanId.c_str());
   }
   if (context.processId != -1) {
     InfoLoggerMessageHelperSetValue(msg, msgHelper.ix_pid, Int, context.processId);
@@ -1084,7 +1096,7 @@ InfoLogger::Severity InfoLogger::getSeverityFromString(const char* txt)
   }
 
   /*
-  // strict implementation  
+  // strict implementation
   if (!strcmp(txt,"Info")) {
     return InfoLogger::Severity::Info;
   } else if (!strcmp(txt,"Error")) {
@@ -1269,7 +1281,7 @@ void InfoLogger::filterReset() {
   mPimpl->filterDiscardLevel = InfoLogger::undefinedMessageOption.level;
 }
 
-int InfoLogger::log(AutoMuteToken &limit, const char* message, ...) { 
+int InfoLogger::log(AutoMuteToken &limit, const char* message, ...) {
   if (mPimpl->magicTag != InfoLoggerMagicNumber) {
     return __LINE__;
   }
@@ -1281,7 +1293,7 @@ int InfoLogger::log(AutoMuteToken &limit, const char* message, ...) {
   if (n == 1) {
     limit.t0 = now;
     limit.ndiscarded = 0;
-  }  
+  }
   // end of interval flag
   bool endOfInterval = ((n > 1) && ((std::chrono::duration_cast<std::chrono::seconds>(now - limit.t0)).count() >= limit.interval));
 
@@ -1292,9 +1304,9 @@ int InfoLogger::log(AutoMuteToken &limit, const char* message, ...) {
     limit.t1 = now;
     return -1;
   }
-  
+
   #define LOG_MUTE_PREFIX "[auto-mute] "
-  
+
   if (endOfInterval) {
     // report once per interval about excess logs
     log(LOG_MUTE_PREFIX "%lu similar messages discarded since last sample (total: %u / %u)", limit.ndiscarded, limit.ndiscardedtotal, n-1);
@@ -1310,7 +1322,7 @@ int InfoLogger::log(AutoMuteToken &limit, const char* message, ...) {
     limit.ndiscarded = 0;
     limit.t0 = now;
   }
-  
+
   // log message
   // forward variable list of arguments to logV method
   int err;
@@ -1318,7 +1330,7 @@ int InfoLogger::log(AutoMuteToken &limit, const char* message, ...) {
   va_start(ap, message);
   err = mPimpl->logV(limit.logOptions, mPimpl->currentContext, message, ap);
   va_end(ap);
-  
+
   if (!endOfInterval) {
     // warn on limit on first excess
     if ( n == limit.maxMsg) {

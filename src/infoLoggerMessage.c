@@ -13,6 +13,28 @@
 /* This file statically defines the existing infoLogger protocols */
 
 infoLog_msgProtocol_t protocols[] = {
+  { "1.5", /* protocol 1.5, 04/2026 — extended with tracing fields */
+    18,
+    { { ILOG_TYPE_STRING, "severity", "" },
+      { ILOG_TYPE_INT, "level", "" },
+      { ILOG_TYPE_DOUBLE, "timestamp", "" },
+      { ILOG_TYPE_STRING, "hostname", "" },
+      { ILOG_TYPE_STRING, "rolename", "" },
+      { ILOG_TYPE_INT, "pid", "" },
+      { ILOG_TYPE_STRING, "username", "" },
+      { ILOG_TYPE_STRING, "system", "" },
+      { ILOG_TYPE_STRING, "facility", "" },
+      { ILOG_TYPE_STRING, "detector", "" },
+      { ILOG_TYPE_STRING, "partition", "" },
+      { ILOG_TYPE_INT, "run", "" },
+      { ILOG_TYPE_INT, "errcode", "" },
+      { ILOG_TYPE_INT, "errline", "" },
+      { ILOG_TYPE_STRING, "errsource", "" },
+      { ILOG_TYPE_STRING, "traceid", "" },
+      { ILOG_TYPE_STRING, "spanid", "" },
+      { ILOG_TYPE_STRING, "message", "" },
+      { ILOG_TYPE_NULL } },
+    { -1 } },
   { "1.4", /* protocol 1.4, 08/2016 */
     16,
     { { ILOG_TYPE_STRING, "severity", "" },

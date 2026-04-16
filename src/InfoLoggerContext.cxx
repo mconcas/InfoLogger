@@ -39,6 +39,8 @@ InfoLoggerContext::InfoLoggerContext(const InfoLoggerContext &sourceContext, con
   detector = sourceContext.detector;
   partition = sourceContext.partition;
   run = sourceContext.run;
+  traceId = sourceContext.traceId;
+  spanId = sourceContext.spanId;
   processId = sourceContext.processId;
   hostName = sourceContext.hostName;
   userName = sourceContext.userName;
@@ -59,6 +61,8 @@ void InfoLoggerContext::reset()
   detector.clear();
   partition.clear();
   run = -1;
+  traceId.clear();
+  spanId.clear();
 
   processId = -1;
   hostName.clear();
@@ -174,7 +178,7 @@ void InfoLoggerContext::refresh(pid_t pid)
     if (run<=0) {
       run=-1;
     }
-  }  
+  }
   */
 }
 
@@ -202,6 +206,10 @@ int InfoLoggerContext::setField(FieldName key, const std::string& value)
       return -1;
     }
     run = v_run;
+  } else if (key == FieldName::TraceId) {
+    traceId = value;
+  } else if (key == FieldName::SpanId) {
+    spanId = value;
   } else {
     return -1;
   }
@@ -238,6 +246,10 @@ int InfoLoggerContext::getFieldNameFromString(const std::string& input, FieldNam
     output = InfoLoggerContext::FieldName::Partition;
   } else if (!strcmp(key, "Run")) {
     output = InfoLoggerContext::FieldName::Run;
+  } else if (!strcmp(key, "TraceId")) {
+    output = InfoLoggerContext::FieldName::TraceId;
+  } else if (!strcmp(key, "SpanId")) {
+    output = InfoLoggerContext::FieldName::SpanId;
   } else {
     return -1;
   }
